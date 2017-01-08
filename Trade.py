@@ -1,6 +1,7 @@
+
 # coding: utf-8
 
-# In[343]:
+# In[483]:
 
 '''
 The python script to analyze the trade data for lykke
@@ -33,7 +34,7 @@ SOFTWARE.
 '''
 
 
-# In[344]:
+# In[484]:
 
 import pandas as pd
 import numpy as np
@@ -46,28 +47,28 @@ transaction_log=[]
 transaction_log_json=[]
 
 
-# In[345]:
+# In[485]:
 
 #pd.read_csv("trade_log_20160801_20161130.csv")
 
 
-# In[346]:
+# In[486]:
 
 df=pd.read_csv("trade_log_20160801_20161130.csv")
 
 
-# In[347]:
+# In[487]:
 
 df["time"]=pd.to_datetime(df.TradeDt)
 
 
-# In[348]:
+# In[488]:
 
 #sort the data by time
 df=df.sort_values(by="time")
 
 
-# In[349]:
+# In[489]:
 
 #drop the useless columns
 df.drop('TraderWalletId',1,inplace=True)
@@ -90,7 +91,7 @@ df['Price'] = df['Price'].astype('float64')
 #df
 
 
-# In[350]:
+# In[490]:
 
 #the set used to count the number of unique assets trading in the exchange
 s={}
@@ -108,10 +109,11 @@ for key in s:
 print "**********************************"
 
 
-# In[351]:
+# In[491]:
 
 #we assume all orders transact at the mid price
 df_orderbook=df.values.tolist()
+log_result = []
 i=0
 for row in df_orderbook:
     if i<len(df_orderbook)-1:
@@ -158,6 +160,21 @@ for row in df_orderbook:
                 trader1_id=row[0]
                 trader2_id=n_row[0]
                 #write log of the transaction
+                tmp_arr = []
+                tmp_arr.append(trader1_id)
+                tmp_arr.append(trader2_id)
+                tmp_arr.append(bid)
+                tmp_arr.append(ask)
+                tmp_arr.append(price_avg)
+                tmp_arr.append(row[1])
+                tmp_arr.append(row[3])
+                tmp_arr.append(n_row[1])
+                tmp_arr.append(n_row[3])
+                tmp_arr.append(vol_tmp)
+                tmp_arr.append(row[7].time())
+                tmp_arr.append(n_row[7])
+                tmp_arr.append(n_row[7].date())
+                log_result.append(tmp_arr)
                 tmp_log={"trader1":trader1_id, "trader2":trader2_id, "bid":bid, "ask":ask , "price":price_avg, "trader1_sell":row[1], "trader1_buy":row[3], "trader2_sell":n_row[1], "trader2_buy":n_row[3], "vol_trader1_buy":vol_tmp,"start_time":row[7].time(),"transaction_time":n_row[7], "date":n_row[7].date()} 
                 transaction_log.append(tmp_log)
                 tmp_log_json={"trader1":trader1_id, "trader2":trader2_id, "bid":bid, "ask":ask , "price":price_avg, "trader1_sell":row[1], "trader1_buy":row[3], "trader2_sell":n_row[1], "trader2_buy":n_row[3], "vol_trader1_buy":vol_tmp,"start_time":str(row[7].time()),"transaction_time":str(n_row[7]), "date":str(n_row[7].date())} 
@@ -168,10 +185,13 @@ for row in df_orderbook:
                 if(n_row[2]<=0):
                     #remove the transaction since the order has already been filled
                     df_orderbook.remove(n_row)
+log_list = ["trader1", "trader2", "bid", "ask", "price", "trader1_sell", "trader1_buy", "trader2_sell", "trader2_buy", "vol_trader1_buy","start_time","transaction_time", "date"]
+transaction_log_df = pd.DataFrame(log_result,columns=log_list)
+transaction_log_df.to_csv("python_csv/hypo_trade_log.csv")
 df
 
 
-# In[352]:
+# In[492]:
 
 def convert_milli_hr(x):
     x = float(x)
@@ -240,14 +260,15 @@ df_result = pd.DataFrame(result, columns=header_list)
 df_result = df_result.sort(['Currency Pair', 'Month'], ascending=False)
 df_result = df_result.reset_index(drop=True)
 print df_result.to_latex()
+df_result.to_csv("python_csv/hypo_trade_interaction_tim.csv")
 
 
-# In[353]:
+# In[493]:
 
 #transaction_log
 
 
-# In[354]:
+# In[494]:
 
 print "Total Number of Trades (without the market maker): " + str(len(transaction_log))
 header_count_list = ["Currency Pair", "Total number of trades","Percentile"]
@@ -274,9 +295,10 @@ df_count = pd.DataFrame(result_count, columns=header_count_list)
 df_count = df_count.sort('Currency Pair', ascending=False)
 df_count = df_count.reset_index(drop=True)
 print df_count.to_latex()
+df_count.to_csv("python_csv/trade_summary.csv")
 
 
-# In[355]:
+# In[495]:
 
 #calculate the average bid ask spread (Without the Market Maker)
 avg_spread={}
@@ -338,26 +360,28 @@ df_result_spread_mid = df_result_spread_mid.sort('Currency Pair', ascending=Fals
 df_result_spread_mid = df_result_spread_mid.reset_index(drop=True)
 
 
-# In[356]:
+# In[496]:
 
 print "*******WITHOUT MARKET MAKER MEASURE*******"
 print df_result_spread.to_latex()
+df_result_spread.to_csv("without_MM_ave_spread.csv")
 
 
-# In[357]:
+# In[497]:
 
 print "*******WITHOUT MARKET MAKER MEASURE*******"
 print df_result_spread_mid.to_latex()
+df_result_spread_mid.to_csv("without_MM_ave_spread_basis_pts.csv")
 
 
-# In[358]:
+# In[498]:
 
 #output the transaction log to file
 with open("transaction_log.json", 'wb') as outfile:
     json.dump(transaction_log_json, outfile)
 
 
-# In[359]:
+# In[499]:
 
 '''The Roll Measure to infer Bid Ask spread'''
 #BTCE-USDBTC.csv
@@ -703,55 +727,63 @@ calculate_noon_rate(df_orderbook, df_btcusd)
 #df_btcusd
 
 
-# In[360]:
+# In[500]:
 
 print "*******ROLLS MEASURE*******"
 print daily_roll[0].to_latex()
+daily_roll[0].to_csv("python_csv/daily_rolls.csv")
 
 
-# In[361]:
+# In[501]:
 
 print "*******ROLLS MEASURE*******"
 print daily_roll[1].to_latex()
+daily_roll[1].to_csv("python_csv/daily_rolls_basis_pts.csv")
 
 
-# In[362]:
+# In[502]:
 
 print "*******ROLLS MEASURE*******"
 print monthly_roll[0].to_latex()
+monthly_roll[0].to_csv("python_csv/monthly_rolls.csv")
 
 
-# In[363]:
+# In[503]:
 
 print "*******ROLLS MEASURE*******"
 print monthly_roll[1].to_latex()
+monthly_roll[1].to_csv("python_csv/monthly_rolls_basis_pts.csv")
 
 
-# In[364]:
+# In[504]:
 
 print "*******ROLLS MEASURE*******"
 print weekly_roll[0].to_latex()
+weekly_roll[0].to_csv("python_csv/weekly_rolls.csv")
 
 
-# In[365]:
+# In[505]:
 
 print "*******ROLLS MEASURE*******"
 print weekly_roll[1].to_latex()
+weekly_roll[1].to_csv("python_csv/weekly_rolls_basis_pts.csv")
 
 
-# In[366]:
+# In[506]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[0].to_latex()
+all_roll[0].to_csv("python_csv/all_rolls.csv")
 
 
-# In[367]:
+# In[507]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[1].to_latex()
+all_roll[1].to_csv("python_csv/all_rolls_basis_pts.csv")
 
 
-# In[368]:
+# In[508]:
 
 #draw the graph of trades
 def draw_network(transaction_log):
