@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[340]:
+# In[372]:
 
 '''
 The python script to analyze the trade data for lykke
@@ -34,7 +34,7 @@ SOFTWARE.
 '''
 
 
-# In[341]:
+# In[373]:
 
 import pandas as pd
 import numpy as np
@@ -47,28 +47,28 @@ transaction_log=[]
 transaction_log_json=[]
 
 
-# In[342]:
+# In[374]:
 
 #pd.read_csv("trade_log_20160801_20161130.csv")
 
 
-# In[343]:
+# In[375]:
 
 df=pd.read_csv("trade_log_20160801_20161130.csv")
 
 
-# In[344]:
+# In[376]:
 
 df["time"]=pd.to_datetime(df.TradeDt)
 
 
-# In[345]:
+# In[377]:
 
 #sort the data by time
 df=df.sort_values(by="time")
 
 
-# In[346]:
+# In[378]:
 
 #drop the useless columns
 df.drop('TraderWalletId',1,inplace=True)
@@ -91,7 +91,7 @@ df['Price'] = df['Price'].astype('float64')
 #df
 
 
-# In[347]:
+# In[379]:
 
 #the set used to count the number of unique assets trading in the exchange
 s={}
@@ -109,7 +109,7 @@ for key in s:
 print "**********************************"
 
 
-# In[348]:
+# In[380]:
 
 #we assume all orders transact at the mid price
 df_orderbook=df.values.tolist()
@@ -191,7 +191,7 @@ transaction_log_df.to_csv("python_csv/hypo_trade_log.csv")
 df
 
 
-# In[349]:
+# In[381]:
 
 def convert_milli_hr(x):
     x = float(x)
@@ -263,12 +263,12 @@ print df_result.to_latex()
 df_result.to_csv("python_csv/hypo_trade_interaction_tim.csv")
 
 
-# In[350]:
+# In[382]:
 
 #transaction_log
 
 
-# In[351]:
+# In[383]:
 
 print "Total Number of Trades (without the market maker): " + str(len(transaction_log))
 header_count_list = ["Currency Pair", "Total number of trades","Percentile"]
@@ -298,7 +298,7 @@ print df_count.to_latex()
 df_count.to_csv("python_csv/trade_summary.csv")
 
 
-# In[352]:
+# In[384]:
 
 #calculate the average bid ask spread (Without the Market Maker)
 avg_spread={}
@@ -360,28 +360,28 @@ df_result_spread_mid = df_result_spread_mid.sort('Currency Pair', ascending=Fals
 df_result_spread_mid = df_result_spread_mid.reset_index(drop=True)
 
 
-# In[353]:
+# In[385]:
 
 print "*******WITHOUT MARKET MAKER MEASURE*******"
 print df_result_spread.to_latex()
 df_result_spread.to_csv("without_MM_ave_spread.csv")
 
 
-# In[354]:
+# In[386]:
 
 print "*******WITHOUT MARKET MAKER MEASURE*******"
 print df_result_spread_mid.to_latex()
 df_result_spread_mid.to_csv("without_MM_ave_spread_basis_pts.csv")
 
 
-# In[355]:
+# In[387]:
 
 #output the transaction log to file
 with open("transaction_log.json", 'wb') as outfile:
     json.dump(transaction_log_json, outfile)
 
 
-# In[356]:
+# In[388]:
 
 '''The Roll Measure to infer Bid Ask spread'''
 #BTCE-USDBTC.csv
@@ -834,7 +834,7 @@ def calculate_roll(df_orderbook, ref_btc_df, freq, nov):
             tmp_avg = []
             arr_avg = np.array(roll_ave)
             mean_avg = np.mean(arr_avg)
-            std_avg = np.mean(arr_avg)
+            std_avg = np.std(arr_avg)
             tmp_avg.append(key_new)
             tmp_avg.append(round(mean_avg,6))
             tmp_avg.append(round(std_avg,6))
@@ -901,103 +901,103 @@ calculate_noon_rate(df_orderbook, df_btcusd)
 #df_btcusd
 
 
-# In[357]:
+# In[389]:
 
 print "*******ROLLS MEASURE*******"
 print daily_roll[0].to_latex()
 daily_roll[0].to_csv("python_csv/daily_rolls.csv")
 
 
-# In[358]:
+# In[390]:
 
 print "*******ROLLS MEASURE*******"
 print daily_roll[1].to_latex()
 daily_roll[1].to_csv("python_csv/daily_rolls_basis_pts.csv")
 
 
-# In[359]:
+# In[391]:
 
 print "*******ROLLS MEASURE*******"
 print daily_roll[2].to_latex()
 daily_roll[2].to_csv("python_csv/daily_rolls_divide_avg.csv")
 
 
-# In[360]:
+# In[392]:
 
 print nov_roll[0].to_latex()
 nov_roll[0].to_csv("python_csv/Nov_Rolls.csv")
 
 
-# In[361]:
+# In[393]:
 
 print nov_roll[1].to_latex()
 nov_roll[0].to_csv("python_csv/Nov_Rolls_BPS.csv")
 
 
-# In[362]:
+# In[394]:
 
 print "*******ROLLS MEASURE*******"
 print monthly_roll[0].to_latex()
 monthly_roll[0].to_csv("python_csv/monthly_rolls.csv")
 
 
-# In[363]:
+# In[395]:
 
 print "*******ROLLS MEASURE*******"
 print monthly_roll[1].to_latex()
 monthly_roll[1].to_csv("python_csv/monthly_rolls_basis_pts.csv")
 
 
-# In[364]:
+# In[396]:
 
 print "*******ROLLS MEASURE*******"
 print monthly_roll[2].to_latex()
 monthly_roll[2].to_csv("python_csv/monthly_rolls_divide_avg.csv")
 
 
-# In[365]:
+# In[397]:
 
 print "*******ROLLS MEASURE*******"
 print weekly_roll[0].to_latex()
 weekly_roll[0].to_csv("python_csv/weekly_rolls.csv")
 
 
-# In[366]:
+# In[398]:
 
 print "*******ROLLS MEASURE*******"
 print weekly_roll[1].to_latex()
 weekly_roll[1].to_csv("python_csv/weekly_rolls_basis_pts.csv")
 
 
-# In[367]:
+# In[399]:
 
 print "*******ROLLS MEASURE*******"
 print weekly_roll[2].to_latex()
 weekly_roll[2].to_csv("python_csv/weekly_rolls_divide_avg.csv")
 
 
-# In[368]:
+# In[400]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[0].to_latex()
 all_roll[0].to_csv("python_csv/all_rolls.csv")
 
 
-# In[369]:
+# In[401]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[1].to_latex()
 all_roll[1].to_csv("python_csv/all_rolls_basis_pts.csv")
 
 
-# In[370]:
+# In[402]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[2].to_latex()
 all_roll[2].to_csv("python_csv/all_rolls_divide_avg.csv")
 
 
-# In[371]:
+# In[403]:
 
 #draw the graph of trades
 def draw_network(transaction_log):
