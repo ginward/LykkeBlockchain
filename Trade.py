@@ -247,10 +247,10 @@ for log in transaction_log:
         avg_time_dict[log["transaction_time"].month] = {}
     if tu not in avg_time_dict[log["transaction_time"].month] or avg_time_dict[log["transaction_time"].month][tu] is None:
         avg_time_dict[log["transaction_time"].month][tu] = []
-    t1_ms = (log["start_time"].hour*60*60 + log["start_time"].minute*60 + log["start_time"].second)*1000 + log["start_time"].microsecond
-    t2_ms = (log["transaction_time"].hour*60*60 + log["transaction_time"].minute*60 + log["transaction_time"].second)*1000 + log["transaction_time"].microsecond
-    if t2_ms-t1_ms>0:
-        avg_time_dict[log["transaction_time"].month][tu].append(convert_milli_hr(t2_ms-t1_ms)) 
+    t1_ms = (log["start_time"].hour*60*60 + log["start_time"].minute*60 + log["start_time"].second)*1000 + log["start_time"].microsecond/1000
+    t2_ms = (log["transaction_time"].hour*60*60 + log["transaction_time"].minute*60 + log["transaction_time"].second)*1000 + log["transaction_time"].microsecond/1000
+    #if t2_ms-t1_ms>0:
+    avg_time_dict[log["transaction_time"].month][tu].append(convert_milli_hr(t2_ms-t1_ms)) 
     
 result=[]
 for month in avg_time_dict:
@@ -1012,14 +1012,14 @@ print all_roll[1].to_latex()
 all_roll[1].to_csv("python_csv/all_rolls_basis_pts.csv")
 
 
-# In[31]:
+# In[ ]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[2].to_latex()
 all_roll[2].to_csv("python_csv/all_rolls_divide_avg.csv")
 
 
-# In[32]:
+# In[ ]:
 
 #draw the graph of trades
 def draw_network(transaction_log):
@@ -1100,18 +1100,19 @@ def draw_limited_network(transaction_log):
         else:
             freq[log["trader2"]]+=1
     for log in transaction_log:
-        if log["trader1"] in freq and freq[log["trader1"]]>10 or log["trader2"] in freq and freq[log["trader2"]]>10:
-            tmp = ()
-            if log["trader1"] < log["trader2"]:
-                tmp = (log["trader1"],log["trader2"])
-            else:
-                tmp = (log["trader2"],log["trader1"])
-            #if the edges are already connected 
-            if tmp in relations:
-                relations[tmp] += 1
-            else: 
-                relations[tmp] = 1
-            G.add_edge(log["trader1"],log["trader2"], weight=relations[tmp])
+        if log["trader1"] in freq and freq[log["trader1"]]>5 or log["trader2"] in freq and freq[log["trader2"]]>5:
+            if (log["trader1_buy"]=="BTC" and log["trader1_sell"] =="USD") or (log["trader1_buy"]=="USD" and log["trader1_sell"] =="BTC") or (log["trader1_buy"]=="LKK" and log["trader1_sell"] =="USD") or (log["trader1_buy"]=="USD" and log["trader1_sell"] =="LKK") or (log["trader1_buy"]=="BTC" and log["trader1_sell"] =="LKK") or (log["trader1_buy"]=="LKK" and log["trader1_sell"] =="BTC"):
+                tmp = ()
+                if log["trader1"] < log["trader2"]:
+                    tmp = (log["trader1"],log["trader2"])
+                else:
+                    tmp = (log["trader2"],log["trader1"])
+                #if the edges are already connected 
+                if tmp in relations:
+                    relations[tmp] += 1
+                else: 
+                    relations[tmp] = 1
+                G.add_edge(log["trader1"],log["trader2"], weight=relations[tmp])
     elarge=[(u,v) for (u,v,d) in G.edges(data=True) if d['weight'] >0.5]
     esmall=[(u,v) for (u,v,d) in G.edges(data=True) if d['weight'] <=0.5]
     #get the list of nodes from the graph
@@ -1125,7 +1126,7 @@ def draw_limited_network(transaction_log):
                 sizes.append(freq[node]*10)
         else:
             sizes.append(0)
-    pos=nx.spring_layout(G,k=3,iterations=800) # positions for all nodes
+    pos=nx.spring_layout(G,k=0.028,iterations=300) # positions for all nodes
     #pos=nx.random_layout(G)
     # nodes
     nx.draw_networkx_nodes(G,pos,node_size=sizes)
@@ -1133,11 +1134,11 @@ def draw_limited_network(transaction_log):
     nx.draw_networkx_edges(G,pos,edgelist=elarge,
                         width=1)
     nx.draw_networkx_edges(G,pos,edgelist=esmall,
-                        width=1,alpha=0.5,edge_color='b',style='dashed')
+                        width=1,alpha=0.34,edge_color='b',style='dashed')
     plt.axis('off')
     plt.savefig("transaction_network.eps" ,format='eps', dpi=2000) # save as eps
     plt.savefig("transaction_network.png",dpi=2000) # save as png
-    #plt.show() # display
+    plt.show() # display
     
-#draw_limited_network(transaction_log)
+draw_limited_network(transaction_log)
 
