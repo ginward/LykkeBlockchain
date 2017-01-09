@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[483]:
+# In[340]:
 
 '''
 The python script to analyze the trade data for lykke
@@ -34,7 +34,7 @@ SOFTWARE.
 '''
 
 
-# In[484]:
+# In[341]:
 
 import pandas as pd
 import numpy as np
@@ -47,28 +47,28 @@ transaction_log=[]
 transaction_log_json=[]
 
 
-# In[485]:
+# In[342]:
 
 #pd.read_csv("trade_log_20160801_20161130.csv")
 
 
-# In[486]:
+# In[343]:
 
 df=pd.read_csv("trade_log_20160801_20161130.csv")
 
 
-# In[487]:
+# In[344]:
 
 df["time"]=pd.to_datetime(df.TradeDt)
 
 
-# In[488]:
+# In[345]:
 
 #sort the data by time
 df=df.sort_values(by="time")
 
 
-# In[489]:
+# In[346]:
 
 #drop the useless columns
 df.drop('TraderWalletId',1,inplace=True)
@@ -91,7 +91,7 @@ df['Price'] = df['Price'].astype('float64')
 #df
 
 
-# In[490]:
+# In[347]:
 
 #the set used to count the number of unique assets trading in the exchange
 s={}
@@ -109,7 +109,7 @@ for key in s:
 print "**********************************"
 
 
-# In[491]:
+# In[348]:
 
 #we assume all orders transact at the mid price
 df_orderbook=df.values.tolist()
@@ -191,7 +191,7 @@ transaction_log_df.to_csv("python_csv/hypo_trade_log.csv")
 df
 
 
-# In[492]:
+# In[349]:
 
 def convert_milli_hr(x):
     x = float(x)
@@ -263,12 +263,12 @@ print df_result.to_latex()
 df_result.to_csv("python_csv/hypo_trade_interaction_tim.csv")
 
 
-# In[493]:
+# In[350]:
 
 #transaction_log
 
 
-# In[494]:
+# In[351]:
 
 print "Total Number of Trades (without the market maker): " + str(len(transaction_log))
 header_count_list = ["Currency Pair", "Total number of trades","Percentile"]
@@ -298,7 +298,7 @@ print df_count.to_latex()
 df_count.to_csv("python_csv/trade_summary.csv")
 
 
-# In[495]:
+# In[352]:
 
 #calculate the average bid ask spread (Without the Market Maker)
 avg_spread={}
@@ -360,28 +360,28 @@ df_result_spread_mid = df_result_spread_mid.sort('Currency Pair', ascending=Fals
 df_result_spread_mid = df_result_spread_mid.reset_index(drop=True)
 
 
-# In[496]:
+# In[353]:
 
 print "*******WITHOUT MARKET MAKER MEASURE*******"
 print df_result_spread.to_latex()
 df_result_spread.to_csv("without_MM_ave_spread.csv")
 
 
-# In[497]:
+# In[354]:
 
 print "*******WITHOUT MARKET MAKER MEASURE*******"
 print df_result_spread_mid.to_latex()
 df_result_spread_mid.to_csv("without_MM_ave_spread_basis_pts.csv")
 
 
-# In[498]:
+# In[355]:
 
 #output the transaction log to file
 with open("transaction_log.json", 'wb') as outfile:
     json.dump(transaction_log_json, outfile)
 
 
-# In[499]:
+# In[356]:
 
 '''The Roll Measure to infer Bid Ask spread'''
 #BTCE-USDBTC.csv
@@ -389,6 +389,7 @@ with open("transaction_log.json", 'wb') as outfile:
 df_btcusd = pd.read_csv("BTCE-USDBTC.csv")
 #convert the Date to date object
 df_btcusd["Date"]=pd.to_datetime(df_btcusd.Date)
+#reinitialize the df_orderbook - the data has been changed since last time
 df_orderbook=df.values.tolist()
 def filter_direction(df_orderbook, freq):
     '''
@@ -399,7 +400,7 @@ def filter_direction(df_orderbook, freq):
     for row in df_orderbook:
         #sell USD, buy BTC
         if row[1]=='USD' and row[3]=='BTC':
-            tuple_tmp = ('USD', 'BTC')
+            tuple_tmp = ('BTC', 'USD')
             if tuple_tmp not in price_dict or price_dict[tuple_tmp] is None:
                 price_dict[tuple_tmp] = {}
             try:
@@ -431,7 +432,7 @@ def filter_direction(df_orderbook, freq):
             except ValueError:
                 pass
         elif row[1]=='BTC' and row[3]=='USD':
-            tuple_tmp = ('USD', 'BTC')
+            tuple_tmp = ('BTC', 'USD')
             if tuple_tmp not in price_dict or price_dict[tuple_tmp] is None:
                 price_dict[tuple_tmp] = {}
             try:
@@ -529,9 +530,154 @@ def filter_direction(df_orderbook, freq):
                     pass
     return price_dict
 
+def avg_bench_mark(df_orderbook, freq):
+    '''
+    The function to calculate the benchmark as average price
+    '''
+    bench_price_dict = {}
+    for row in df_orderbook:
+        if row[1]=='USD' and row[3]=='BTC':
+            tuple_tmp = ('BTC', 'USD')
+            if tuple_tmp not in bench_price_dict or bench_price_dict[tuple_tmp] is None:
+                bench_price_dict[tuple_tmp] = {}
+            try: 
+                if freq == "daily":
+                    if row[7].date() not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].date()] is None:
+                        bench_price_dict[tuple_tmp][row[7].date()] = []
+                    bench_price_dict[tuple_tmp][row[7].date()].append(float(row[6])) #InvPrice                    
+                elif freq == "monthly":
+                    if row[7].month not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].month] is None:
+                        bench_price_dict[tuple_tmp][row[7].month] = []
+                    bench_price_dict[tuple_tmp][row[7].month].append(float(row[6]))                    
+                elif freq == "weekly":
+                    week = 0
+                    if row[7].day < 7:
+                        week = str(row[7].month)+"_"+str(1)
+                    elif row[7].day >=7 and row[7].day < 14:
+                        week = str(row[7].month)+"_"+str(2)
+                    elif row[7].day >=14 and row[7].day < 21:
+                        week = str(row[7].month)+"_"+str(3)
+                    elif row[7].day >=21 and row[7].day <= 31:
+                        week = str(row[7].month)+"_"+str(4) 
+                    if week not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][week] is None:
+                        bench_price_dict[tuple_tmp][week] = []
+                    bench_price_dict[tuple_tmp][week].append(float(row[6])) #InvPrice                    
+                elif freq == "all":
+                    if 'all' not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp]['all'] is None:
+                        bench_price_dict[tuple_tmp]['all'] = []
+                    bench_price_dict[tuple_tmp]['all'].append(float(row[6]))                       
+            except ValueError:
+                pass
+        elif row[1]=='BTC' and row[3]=='USD':
+            tuple_tmp = ('BTC', 'USD')
+            if tuple_tmp not in bench_price_dict or bench_price_dict[tuple_tmp] is None:
+                bench_price_dict[tuple_tmp] = {}
+            try: 
+                if freq == "daily":
+                    if row[7].date() not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].date()] is None:
+                        bench_price_dict[tuple_tmp][row[7].date()] = []
+                    bench_price_dict[tuple_tmp][row[7].date()].append(float(row[5])) #Price                    
+                elif freq == "monthly":
+                    if row[7].month not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].month] is None:
+                        bench_price_dict[tuple_tmp][row[7].month] = []
+                    bench_price_dict[tuple_tmp][row[7].month].append(float(row[5]))                    
+                elif freq == "weekly":
+                    week = 0
+                    if row[7].day < 7:
+                        week = str(row[7].month)+"_"+str(1)
+                    elif row[7].day >=7 and row[7].day < 14:
+                        week = str(row[7].month)+"_"+str(2)
+                    elif row[7].day >=14 and row[7].day < 21:
+                        week = str(row[7].month)+"_"+str(3)
+                    elif row[7].day >=21 and row[7].day <= 31:
+                        week = str(row[7].month)+"_"+str(4) 
+                    if week not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][week] is None:
+                        bench_price_dict[tuple_tmp][week] = []
+                    bench_price_dict[tuple_tmp][week].append(float(row[5])) #Price                    
+                elif freq == "all":
+                    if 'all' not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp]['all'] is None:
+                        bench_price_dict[tuple_tmp]['all'] = []
+                    bench_price_dict[tuple_tmp]['all'].append(float(row[5]))                       
+            except ValueError:
+                pass            
+        if row[1]<row[3]:
+            tuple_tmp = (row[1],  row[3])
+            if tuple_tmp not in bench_price_dict or bench_price_dict[tuple_tmp] is None:
+                bench_price_dict[tuple_tmp] = {}
+            try: 
+                if freq == "daily":
+                    if row[7].date() not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].date()] is None:
+                        bench_price_dict[tuple_tmp][row[7].date()] = []
+                    bench_price_dict[tuple_tmp][row[7].date()].append(float(row[6])) #InvPrice                    
+                elif freq == "monthly":
+                    if row[7].month not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].month] is None:
+                        bench_price_dict[tuple_tmp][row[7].month] = []
+                    bench_price_dict[tuple_tmp][row[7].month].append(float(row[6]))                    
+                elif freq == "weekly":
+                    week = 0
+                    if row[7].day < 7:
+                        week = str(row[7].month)+"_"+str(1)
+                    elif row[7].day >=7 and row[7].day < 14:
+                        week = str(row[7].month)+"_"+str(2)
+                    elif row[7].day >=14 and row[7].day < 21:
+                        week = str(row[7].month)+"_"+str(3)
+                    elif row[7].day >=21 and row[7].day <= 31:
+                        week = str(row[7].month)+"_"+str(4) 
+                    if week not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][week] is None:
+                        bench_price_dict[tuple_tmp][week] = []
+                    bench_price_dict[tuple_tmp][week].append(float(row[6])) #InvPrice                    
+                elif freq == "all":
+                    if 'all' not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp]['all'] is None:
+                        bench_price_dict[tuple_tmp]['all'] = []
+                    bench_price_dict[tuple_tmp]['all'].append(float(row[6]))                       
+            except ValueError:
+                pass
+        else:
+            tuple_tmp = (row[3],  row[1])
+            if tuple_tmp not in bench_price_dict or bench_price_dict[tuple_tmp] is None:
+                bench_price_dict[tuple_tmp] = {}
+            try: 
+                if freq == "daily":
+                    if row[7].date() not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].date()] is None:
+                        bench_price_dict[tuple_tmp][row[7].date()] = []
+                    bench_price_dict[tuple_tmp][row[7].date()].append(float(row[5])) #Price                    
+                elif freq == "monthly":
+                    if row[7].month not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][row[7].month] is None:
+                        bench_price_dict[tuple_tmp][row[7].month] = []
+                    bench_price_dict[tuple_tmp][row[7].month].append(float(row[5]))                    
+                elif freq == "weekly":
+                    week = 0
+                    if row[7].day < 7:
+                        week = str(row[7].month)+"_"+str(1)
+                    elif row[7].day >=7 and row[7].day < 14:
+                        week = str(row[7].month)+"_"+str(2)
+                    elif row[7].day >=14 and row[7].day < 21:
+                        week = str(row[7].month)+"_"+str(3)
+                    elif row[7].day >=21 and row[7].day <= 31:
+                        week = str(row[7].month)+"_"+str(4) 
+                    if week not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp][week] is None:
+                        bench_price_dict[tuple_tmp][week] = []
+                    bench_price_dict[tuple_tmp][week].append(float(row[5])) #Price                    
+                elif freq == "all":
+                    if 'all' not in bench_price_dict[tuple_tmp] or bench_price_dict[tuple_tmp]['all'] is None:
+                        bench_price_dict[tuple_tmp]['all'] = []
+                    bench_price_dict[tuple_tmp]['all'].append(float(row[5]))                       
+            except ValueError:
+                pass
+    result_dict = {}
+    for key in bench_price_dict:
+        if key not in result_dict or result_dict[key] is None: 
+            result_dict[key]={}
+        for k in bench_price_dict[key]:
+            if k not in result_dict[key] or result_dict[key][k] is None:
+                result_dict[key][k] = 0
+            arr = np.array(bench_price_dict[key][k])
+            result_dict[key][k] = np.average(arr)
+    return result_dict
+        
 def bench_mark(ref_btc_df, freq):
     '''
-    The function to calculate the benchmark
+    The function to calculate the benchmark for BTC/USD Pair 
     '''
     #convert ref_btc_df to a list 
     ref_btc_df_list_tmp=ref_btc_df.values.tolist()
@@ -591,25 +737,36 @@ def autocovariance(Xi, N, k, Xs, Xs_):
         autoCov += ((Xi[i+k])-Xs_)*(Xi[i]-Xs)
     return float((1/(N-1)))*autoCov
 
-def calculate_roll(df_orderbook, ref_btc_df, freq):
+def calculate_roll(df_orderbook, ref_btc_df, freq, nov):
     '''
-    Function to calculate the roll measure according to the frequency passed in
+    Function to calculate the roll measure according to the frequency passed in.
+    When nov is True, this script calculates the Novemeber data only. Because the Nov. data is speical in the way
+    that the data volume is large. 
     '''
     bench_dict = bench_mark(ref_btc_df, freq) #the benchmark for usd/btc pair
+    avg_bench_dict = avg_bench_mark(df_orderbook, freq)
     price_dict = filter_direction(df_orderbook, freq)
     header_list_spread_rolls = ["Currency Pair("+freq+")", "Average Spread", "Standard Deviation", "Observations"] 
     result_spread_rolls=[]
     header_list_spread_noon = ["Currency Pair("+freq+")", "Average Spread/Noon Rate (Basis Points)", "Standard Deviation", "Observations"]
     result_spread_rolls_noon = []
+    header_list_roll_avg = ["Currency Pair("+freq+")", "Roll/Ave. Price", "Standard Deviation", "Observations"]
+    result_roll_avg = []
     for key in price_dict:
         #to calculate the average value
         ave = []
         #to calculate the average spread/noon rate
         ave_noon = []
+        #average spread / average rate 
+        roll_ave = []
         #print "*****"+str(key)+" pair starts"+"*****"
         pair_dict = price_dict[key]
         #calcualte the roll measure based on the daily data
         for pair_key in pair_dict:
+            #Prof. Park's speical request to calcualte Nov results only 
+            if freq == "daily" and nov == True:
+                if pair_key.month !=11:
+                    continue
             #print "***"+str(pair_key)+" starts ***"
             if len(pair_dict[pair_key])>4:
                 price_arr = pair_dict[pair_key]
@@ -634,10 +791,12 @@ def calculate_roll(df_orderbook, ref_btc_df, freq):
                     spread = 2 * (math.sqrt(-auto_corr))
                     ave.append(spread)
                     if pair_key in bench_dict:
-                        if key == ("USD", "BTC"):
+                        if key == ("BTC", "USD"):
                             ave_noon.append((spread/bench_dict[pair_key])*10000)
                         else:
                             ave_noon.append(0)
+                    if key in avg_bench_dict and pair_key in avg_bench_dict[key]:
+                        roll_ave.append((spread/avg_bench_dict[key][pair_key])*10000)
                     #print "the roll measure bid and ask spread is:"
                     #print str(spread)
                 else:
@@ -671,6 +830,16 @@ def calculate_roll(df_orderbook, ref_btc_df, freq):
             tmp_noon.append(round(std_noon,6))
             tmp_noon.append(round(len(ave),6))
             result_spread_rolls_noon.append(tmp_noon)
+            #roll/ave
+            tmp_avg = []
+            arr_avg = np.array(roll_ave)
+            mean_avg = np.mean(arr_avg)
+            std_avg = np.mean(arr_avg)
+            tmp_avg.append(key_new)
+            tmp_avg.append(round(mean_avg,6))
+            tmp_avg.append(round(std_avg,6))
+            tmp_avg.append(round(len(ave),6))
+            result_roll_avg.append(tmp_avg)
             #print str(key)+" average spread/noon rate (in basis points) is:"+str(mean_noon*10000) + " the standard deviation is: "+str(std_noon)
             #print str(key)+" "+str(len(ave))+" days used in the calculation"
         else:
@@ -685,7 +854,11 @@ def calculate_roll(df_orderbook, ref_btc_df, freq):
     df_result_spread_rolls_noon=df_result_spread_rolls_noon.sort("Currency Pair("+freq+")", ascending=False)
     df_result_spread_rolls_noon=df_result_spread_rolls_noon.reset_index(drop=True)
     
-    return (df_result_spread_rolls, df_result_spread_rolls_noon)
+    df_result_spread_rolls_ave = pd.DataFrame(result_roll_avg, columns=header_list_roll_avg)
+    df_result_spread_rolls_ave=df_result_spread_rolls_ave.sort("Currency Pair("+freq+")", ascending=False)
+    df_result_spread_rolls_ave=df_result_spread_rolls_ave.reset_index(drop=True)
+    
+    return (df_result_spread_rolls, df_result_spread_rolls_noon, df_result_spread_rolls_ave)
     
 def calculate_noon_rate(df_orderbook, ref_btc_df):
     '''
@@ -719,71 +892,112 @@ def calculate_noon_rate(df_orderbook, ref_btc_df):
     std = np.std(arr)
     print "the (daily) average direction * (price-noon)/noon  for USD-BTC (in basis points) is: "+str(mean * 10000)+" the standard deviation is: "+str(std)
     
-daily_roll = calculate_roll(df_orderbook, df_btcusd, "daily")
-monthly_roll = calculate_roll(df_orderbook, df_btcusd, "monthly")
-weekly_roll = calculate_roll(df_orderbook, df_btcusd, "weekly")
-all_roll = calculate_roll(df_orderbook, df_btcusd, "all")
+daily_roll = calculate_roll(df_orderbook, df_btcusd, "daily", False)
+monthly_roll = calculate_roll(df_orderbook, df_btcusd, "monthly", False)
+nov_roll = calculate_roll(df_orderbook, df_btcusd, "daily", True)
+weekly_roll = calculate_roll(df_orderbook, df_btcusd, "weekly", False)
+all_roll = calculate_roll(df_orderbook, df_btcusd, "all", False)
 calculate_noon_rate(df_orderbook, df_btcusd)
 #df_btcusd
 
 
-# In[500]:
+# In[357]:
 
 print "*******ROLLS MEASURE*******"
 print daily_roll[0].to_latex()
 daily_roll[0].to_csv("python_csv/daily_rolls.csv")
 
 
-# In[501]:
+# In[358]:
 
 print "*******ROLLS MEASURE*******"
 print daily_roll[1].to_latex()
 daily_roll[1].to_csv("python_csv/daily_rolls_basis_pts.csv")
 
 
-# In[502]:
+# In[359]:
+
+print "*******ROLLS MEASURE*******"
+print daily_roll[2].to_latex()
+daily_roll[2].to_csv("python_csv/daily_rolls_divide_avg.csv")
+
+
+# In[360]:
+
+print nov_roll[0].to_latex()
+nov_roll[0].to_csv("python_csv/Nov_Rolls.csv")
+
+
+# In[361]:
+
+print nov_roll[1].to_latex()
+nov_roll[0].to_csv("python_csv/Nov_Rolls_BPS.csv")
+
+
+# In[362]:
 
 print "*******ROLLS MEASURE*******"
 print monthly_roll[0].to_latex()
 monthly_roll[0].to_csv("python_csv/monthly_rolls.csv")
 
 
-# In[503]:
+# In[363]:
 
 print "*******ROLLS MEASURE*******"
 print monthly_roll[1].to_latex()
 monthly_roll[1].to_csv("python_csv/monthly_rolls_basis_pts.csv")
 
 
-# In[504]:
+# In[364]:
+
+print "*******ROLLS MEASURE*******"
+print monthly_roll[2].to_latex()
+monthly_roll[2].to_csv("python_csv/monthly_rolls_divide_avg.csv")
+
+
+# In[365]:
 
 print "*******ROLLS MEASURE*******"
 print weekly_roll[0].to_latex()
 weekly_roll[0].to_csv("python_csv/weekly_rolls.csv")
 
 
-# In[505]:
+# In[366]:
 
 print "*******ROLLS MEASURE*******"
 print weekly_roll[1].to_latex()
 weekly_roll[1].to_csv("python_csv/weekly_rolls_basis_pts.csv")
 
 
-# In[506]:
+# In[367]:
+
+print "*******ROLLS MEASURE*******"
+print weekly_roll[2].to_latex()
+weekly_roll[2].to_csv("python_csv/weekly_rolls_divide_avg.csv")
+
+
+# In[368]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[0].to_latex()
 all_roll[0].to_csv("python_csv/all_rolls.csv")
 
 
-# In[507]:
+# In[369]:
 
 print "*******ROLLS MEASURE*******"
 print all_roll[1].to_latex()
 all_roll[1].to_csv("python_csv/all_rolls_basis_pts.csv")
 
 
-# In[508]:
+# In[370]:
+
+print "*******ROLLS MEASURE*******"
+print all_roll[2].to_latex()
+all_roll[2].to_csv("python_csv/all_rolls_divide_avg.csv")
+
+
+# In[371]:
 
 #draw the graph of trades
 def draw_network(transaction_log):
